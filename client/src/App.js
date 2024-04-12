@@ -5,8 +5,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import NavBar from "./components/NavBar";
 import SignUp from "./components/SignUp";
 import LogIn from "./components/LogIn";
-import Home from "./components/Home"; // You need to create this component.
-import ProtectedRoute from "./components/ProtectedRoute";
+import Home from "./components/Home";
+import MemoryGame from './components/MemoryGame';
 
 function App() {
   return (
@@ -14,13 +14,10 @@ function App() {
       <AuthProvider>
         <NavBar />
         <Routes>
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } />
+          <Route path="/" element={<Home />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<LogIn />} />
+          <Route path="/memory-game" element={<MemoryGame />} />
         </Routes>
       </AuthProvider>
     </Router>
