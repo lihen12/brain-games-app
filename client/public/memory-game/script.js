@@ -3,6 +3,7 @@ const selectors = {
     board: document.querySelector('.board'),
     moves: document.querySelector('.moves'),
     timer: document.querySelector('.timer'),
+    score: document.querySelector('.score'), // added score
     start: document.querySelector('button'),
     win: document.querySelector('.win')
 }
@@ -43,32 +44,6 @@ const pickRandom = (array, items) => {
     return randomPicks
 }
 
-// const generateGame = () => {
-//     const dimensions = selectors.board.getAttribute('data-dimension')  
-
-//     if (dimensions % 2 !== 0) {
-//         throw new Error("The dimension of the board must be an even number.")
-//     }
-
-//     const emojis = ['🥔', '🍒', '🥑', '🌽', '🥕', '🍇', '🍉', '🍌', '🥭', '🍍']
-//     const picks = pickRandom(emojis, (dimensions * dimensions) / 2) 
-//     const items = shuffle([...picks, ...picks])
-//     const cards = `
-//         <div class="board" style="grid-template-columns: repeat(${dimensions}, auto)">
-//             ${items.map(item => `
-//                 <div class="card">
-//                     <div class="card-front"></div>
-//                     <div class="card-back">${item}</div>
-//                 </div>
-//             `).join('')}
-//        </div>
-//     `
-    
-//     const parser = new DOMParser().parseFromString(cards, 'text/html')
-
-//     selectors.board.replaceWith(parser.querySelector('.board'))
-// }
-
 const generateGame = () => {
     const dimensions = selectors.board.getAttribute('data-dimension');
 
@@ -91,17 +66,21 @@ const generateGame = () => {
     // No need to replace 'selectors.board' as it's now always pointing to the correct element
 }
 
-
 const startGame = () => {
-    state.gameStarted = true
-    selectors.start.classList.add('disabled')
+    state.totalFlips = 0;
+    state.totalTime = 0;
+    selectors.moves.innerText = '0 moves';
+    selectors.timer.innerText = 'Time: 0 sec';
+    updateScore();  // Initialize score display
+    selectors.start.classList.add('disabled');
 
     state.loop = setInterval(() => {
-        state.totalTime++
+        state.totalTime++;
+        selectors.timer.innerText = `Time: ${state.totalTime} sec`;
+        updateScore();  // Continuously update score as time increases
+    }, 1000);
 
-        selectors.moves.innerText = `${state.totalFlips} moves`
-        selectors.timer.innerText = `Time: ${state.totalTime} sec`
-    }, 1000)
+    state.gameStarted = true;
 }
 
 const flipBackCards = () => {
@@ -112,68 +91,81 @@ const flipBackCards = () => {
     state.flippedCards = 0
 }
 
+// Function to update the score display
+function updateScore() {
+    const score = (2 * state.totalFlips) + state.totalTime;
+    selectors.score.innerText = `Score: ${score}`;  // Update the score display
+}
+
 const flipCard = card => {
-    state.flippedCards++
-    state.totalFlips++
-
     if (!state.gameStarted) {
-        startGame()
+        startGame();  // This will start the timer
     }
 
-    if (state.flippedCards <= 2) {
-        card.classList.add('flipped')
-    }
+    if (state.flippedCards < 2) {
+        card.classList.add('flipped');
+        state.flippedCards++;
 
-    if (state.flippedCards === 2) {
-        const flippedCards = document.querySelectorAll('.flipped:not(.matched)')
+        if (state.flippedCards === 2) {
+            state.totalFlips++;  // Increment totalFlips after two cards are flipped
+            selectors.moves.innerText = `${state.totalFlips} moves`;
+            updateScore();  // Update score after each move
 
-        if (flippedCards[0].innerText === flippedCards[1].innerText) {
-            flippedCards[0].classList.add('matched')
-            flippedCards[1].classList.add('matched')
+            const flippedCards = document.querySelectorAll('.flipped:not(.matched)');
+            if (flippedCards.length === 2 && flippedCards[0].querySelector('.card-back').innerText === flippedCards[1].querySelector('.card-back').innerText) {
+                flippedCards.forEach(card => card.classList.add('matched'));
+            }
+
+            setTimeout(() => {
+                flipBackCards();  // Reset flipped cards
+                updateScore();  // Ensure score is updated if cards are unmatched
+            }, 1000);
         }
-
-        setTimeout(() => {
-            flipBackCards()
-        }, 1000)
     }
-    if (!document.querySelectorAll('.card:not(.flipped)').length) {
+
+    checkGameOver();  // Check if the game is over and display results if it is
+}
+
+// Function to check if the game is over
+const checkGameOver = () => {
+    if (document.querySelectorAll('.card:not(.matched)').length === 0) {  // All cards are matched
         setTimeout(() => {
-            selectors.boardContainer.classList.add('flipped');
-            selectors.win.innerHTML = `
-                <span class="win-text">
-                    You won!<br />
-                    with <span class="highlight">${state.totalFlips}</span> moves<br />
-                    under <span class="highlight">${state.totalTime}</span> seconds
-                    <button id="reset-btn">Reset</button>
-                </span>
-            `;
-            // Attach the event listener to the reset button here
-            document.getElementById('reset-btn').addEventListener('click', resetGame);
-        
-            clearInterval(state.loop);
-        }, 1000);        
+            endGame();  // Calculate and display score
+        }, 1000);
     }
 }
 
-function resetGame() {
-    // Remove the 'flipped' class to revert the flip transformation
+const endGame = () => {
+    clearInterval(state.loop);
+    state.gameStarted = false;
+
+    updateScore();  // Final score update
+
+    selectors.win.innerHTML = `
+        <div class="win-text">
+            You won!<br />
+            Score: ${selectors.score.innerText}<br />
+            Moves: ${state.totalFlips}<br />
+            Time: ${state.totalTime} seconds<br />
+            <button id="reset-btn">Reset</button>
+        </div>
+    `;
+    document.getElementById('reset-btn').addEventListener('click', resetGame);
+    selectors.boardContainer.classList.add('flipped');  // Show the win message
+}
+
+const resetGame = () => {
     selectors.boardContainer.classList.remove('flipped');
-
-    // Reset the win message back to its original state
-    selectors.win.innerHTML = ''; // Clears the win message
-
-    // Re-enable the start button
+    selectors.win.innerHTML = '';
     selectors.start.classList.remove('disabled');
 
-    // Reset game state variables
+    clearInterval(state.loop);  // Ensure no timer is running
     state.gameStarted = false;
-    state.flippedCards = 0;
     state.totalFlips = 0;
     state.totalTime = 0;
-    clearInterval(state.loop);
 
-    // Regenerate the game board
-    generateGame();
+    generateGame();  // Regenerate the game board
+    attachEventListeners();  // Reattach event listeners
 }
 
 const attachEventListeners = () => {
