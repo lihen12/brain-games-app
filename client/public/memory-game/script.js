@@ -135,11 +135,33 @@ const checkGameOver = () => {
     }
 }
 
+// const endGame = () => {
+//     clearInterval(state.loop);
+//     state.gameStarted = false;
+
+//     updateScore();  // Final score update
+
+//     selectors.win.innerHTML = `
+//         <div class="win-text">
+//             You won!<br />
+//             Score: ${selectors.score.innerText}<br />
+//             Moves: ${state.totalFlips}<br />
+//             Time: ${state.totalTime} seconds<br />
+//             <button id="reset-btn">Reset</button>
+//         </div>
+//     `;
+//     document.getElementById('reset-btn').addEventListener('click', resetGame);
+//     selectors.boardContainer.classList.add('flipped');  // Show the win message
+// }
+
 const endGame = () => {
     clearInterval(state.loop);
     state.gameStarted = false;
+    updateScore();  // Ensure final score update
 
-    updateScore();  // Final score update
+    // Dispatch custom event with the final score
+    const finalScore = (2 * state.totalFlips) + state.totalTime;  // Assuming this is how you calculate the final score
+    document.dispatchEvent(new CustomEvent('gameCompleted', { detail: { score: finalScore } }));
 
     selectors.win.innerHTML = `
         <div class="win-text">
@@ -152,7 +174,8 @@ const endGame = () => {
     `;
     document.getElementById('reset-btn').addEventListener('click', resetGame);
     selectors.boardContainer.classList.add('flipped');  // Show the win message
-}
+};
+
 
 const resetGame = () => {
     selectors.boardContainer.classList.remove('flipped');
